@@ -6,8 +6,8 @@ COPY package*.json ./
 
 RUN npm install react-scripts -g
 
-RUN npm install && npm run build
-
 COPY . .
+
+RUN npm install && npm run build
 
 CMD ["npm", "start", "--", "-p", "80"]
