@@ -1,23 +1,11 @@
-# Use an official Node runtime as a base image
-FROM node:14-alpine
+FROM docker.io/library/node:14-alpine@sha256:434215b487a329c9e867202ff89e704d3a75e554822e07f3e0c0f9e606121b33
 
-# Set the working directory in the container
 WORKDIR /app
 
-# Copy package.json and package-lock.json to the working directory
 COPY package*.json ./
 
-# Install dependencies including react-scripts
-RUN npm install react-scripts && npm install
+RUN npm install
 
-# Copy the rest of the application code
 COPY . .
 
-# Build the React app
 RUN npm run build
-
-# Expose port 80 to the outside world
-EXPOSE 80
-
-# Command to run the application
-CMD ["npm", "run", "start", "--", "-p", "80"]
