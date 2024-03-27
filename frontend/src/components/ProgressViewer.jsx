@@ -3,13 +3,14 @@ import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
 import { getProgress } from "../api/file";
 
-function ProgressViewer({ fileId, setFileId }) {
+function ProgressViewer({ fileId, setFileId = () => {} }) {
   const [percent, setPercent] = useState(0);
+  const [id, setId] = useState(fileId);
   const [name, setName] = useState("MyFileNew.mp4");
 
   useEffect(() => {
     const intervalId = setInterval(() => {
-      getProgress(fileId).then((data) => {
+      getProgress(id).then((data) => {
         if (!data.success) {
           setFileId(null);
           window.localStorage.removeItem("uploadData");
@@ -28,8 +29,8 @@ function ProgressViewer({ fileId, setFileId }) {
     setFileId(uploadData?.fileId);
     setName(uploadData?.filename);
 
-    return () => clearInterval(intervalId);
-  }, [fileId, setFileId]);
+    if (!uploadData || fileId) return () => clearInterval(intervalId);
+  }, [id]);
 
   return (
     <div className="progress-view">
