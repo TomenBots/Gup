@@ -8,6 +8,8 @@ RUN npm install react-scripts -g
 
 RUN npm install && npm run build
 
+COPY frontend ./frontend   # Copy frontend directory into the Docker build context
+
 COPY . .
 
 CMD ["npm", "start", "--", "-p", "80"]
