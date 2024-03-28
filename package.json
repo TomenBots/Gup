@@ -3,6 +3,16 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "build": "cd frontend && npm run build",
+    "postinstall": "cd frontend && npm install"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
     "@testing-library/jest-dom": "^5.15.1",
     "@testing-library/react": "^11.2.7",
@@ -22,15 +32,5 @@
   },
     "devDependencies": {
       "nodemon": "^2.0.15"
-  },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js",
-    "dev": "nodemon index.js",
-    "build": "cd frontend && npm run build",
-    "postinstall": "cd frontend && npm install"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  }
 }
