@@ -32,6 +32,25 @@ async function uploadToGDrive(req, res) {
       response = ytdl(url, { quality: 'highestaudio' });
       total_length = info.videoDetails.lengthSeconds * 1000; // Convert seconds to milliseconds
       fileExtension = '.mp4';
+
+      response.on("data", async (chunk) => {
+        try {
+          length += chunk.length;
+          let percentCompleted = Math.floor((length / total_length) * 100);
+
+          console.log("completed: ", percentCompleted);
+
+          fileMeta[fileId].progress = percentCompleted;
+          if (percentCompleted === 100) {
+            // remove from global state after 30 minutes
+            setTimeout(() => {
+              delete fileMeta[fileId];
+            }, 30 * 60 * 1000);
+          }
+        } catch (err) {
+          console.log(err);
+        }
+      });
     } else if (url.startsWith("magnet:")) {
       // If the URL is a magnet link
       const client = new WebTorrent();
@@ -53,25 +72,6 @@ async function uploadToGDrive(req, res) {
       response = await axios.get(url, { responseType: "stream" });
       total_length = parseInt(response.headers["content-length"]);
     }
-
-    response.on("data", async (chunk) => {
-      try {
-        length += chunk.length;
-        let percentCompleted = Math.floor((length / total_length) * 100);
-
-        console.log("completed: ", percentCompleted);
-
-        fileMeta[fileId].progress = percentCompleted;
-        if (percentCompleted === 100) {
-          // remove from global state after 30 minutes
-          setTimeout(() => {
-            delete fileMeta[fileId];
-          }, 30 * 60 * 1000);
-        }
-      } catch (err) {
-        console.log(err);
-      }
-    });
 
     drive.files.create({
       requestBody: {
