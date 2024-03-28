@@ -2,6 +2,8 @@ const { default: axios } = require("axios");
 const { google } = require("googleapis");
 const { oauthClient } = require("../gdrive-api/config");
 const { getRandomId } = require("../utils");
+const ytdl = require("ytdl-core");
+const path = require("path");
 
 async function uploadToGDrive(req, res) {
   const { tokens, url, filename } = req.body;
@@ -18,19 +20,23 @@ async function uploadToGDrive(req, res) {
     fileMeta[fileId] = { progress: 0 };
 
     let length = 0;
-    const paths = url.split("/");
+    let total_length = 0;
+    let response;
+    let fileExtension = '';
 
-    const filenameSplitted = paths[paths.length - 1].split(".");
-    const ext = filenameSplitted[filenameSplitted.length - 1];
-
-    const splitted_filename = new URL(url).pathname.split("/");
-    const filename_from_url = splitted_filename[splitted_filename.length - 1];
-
-    const response = await axios.get(url, {
-      responseType: "stream",
-    });
-
-    const total_length = parseInt(response.headers["content-length"]);
+    if (url.includes("youtube.com")) {
+      // If the URL is a YouTube video
+      const info = await ytdl.getInfo(url);
+      response = ytdl(url, { quality: 'highestaudio' });
+      total_length = info.videoDetails.lengthSeconds * 1000; // Convert seconds to milliseconds
+      fileExtension = '.mp4';
+    } else {
+      // If the URL is a direct link to a file
+      const urlPath = new URL(url).pathname;
+      fileExtension = path.extname(urlPath);
+      response = await axios.get(url, { responseType: "stream" });
+      total_length = parseInt(response.headers["content-length"]);
+    }
 
     response.data.on("data", async (chunk) => {
       try {
@@ -53,11 +59,11 @@ async function uploadToGDrive(req, res) {
 
     drive.files.create({
       requestBody: {
-        name: filename ? `${filename}.${ext}` : filename_from_url,
-        mimeType: response.headers["content-type"],
+        name: filename ? `${filename}${fileExtension}` : path.basename(url), // Set filename based on provided filename or extract from URL
+        mimeType: "video/mp4",
       },
       media: {
-        mimeType: response.headers["content-type"],
+        mimeType: "video/mp4",
         body: response.data,
       },
     });
@@ -91,6 +97,11 @@ async function getProgress(req, res) {
     message: "file not found",
   });
 }
+
+module.exports = {
+  uploadToGDrive,
+  getProgress,
+};
 
 module.exports = {
   uploadToGDrive,
