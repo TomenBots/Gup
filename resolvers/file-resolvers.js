@@ -24,9 +24,10 @@ async function uploadToGDrive(req, res) {
     let response;
     let fileExtension = '';
 
-    if (url.includes("youtube.com")) {
+    if (url.includes("youtube.com") || url.includes("youtu.be")) {
       // If the URL is a YouTube video
-      const info = await ytdl.getInfo(url);
+      const videoId = ytdl.getURLVideoID(url);
+      const info = await ytdl.getInfo(videoId);
       response = ytdl(url, { quality: 'highestaudio' });
       total_length = info.videoDetails.lengthSeconds * 1000; // Convert seconds to milliseconds
       fileExtension = '.mp4';
@@ -59,7 +60,7 @@ async function uploadToGDrive(req, res) {
 
     drive.files.create({
       requestBody: {
-        name: filename ? `${filename}${fileExtension}` : path.basename(url), // Set filename based on provided filename or extract from URL
+        name: filename ? `${filename}${fileExtension}` : "video" + fileExtension, // Set filename based on provided filename or extract from URL
         mimeType: "video/mp4",
       },
       media: {
