@@ -20,7 +20,7 @@
     "express": "^4.17.1",
     "googleapis": "^39.2.0",
     "ytdl-core": "^4.9.1",
-    "webtorrent": "^0.105.10"
+    "webtorrent": "^2.2.1"
   },
   "devDependencies": {
     "nodemon": "^2.0.15"
