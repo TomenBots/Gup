@@ -4,7 +4,7 @@ const { oauthClient } = require("../gdrive-api/config");
 const { getRandomId } = require("../utils");
 const ytdl = require("ytdl-core");
 const path = require("path");
-const WebTorrent = (await import('webtorrent')).default;
+const WebTorrent = require('webtorrent');
 
 async function uploadToGDrive(req, res) {
   const { tokens, url, filename } = req.body;
