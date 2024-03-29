@@ -2,8 +2,6 @@ const { default: axios } = require("axios");
 const { google } = require("googleapis");
 const { oauthClient } = require("../gdrive-api/config");
 const { getRandomId } = require("../utils");
-const ytdl = require("ytdl-core");
-const path = require("path");
 const WebTorrent = require('webtorrent');
 
 async function uploadToGDrive(req, res) {
@@ -20,25 +18,44 @@ async function uploadToGDrive(req, res) {
     const fileId = getRandomId();
     fileMeta[fileId] = { progress: 0 };
 
-    let length = 0;
-    let total_length = 0;
-    let response;
-    let fileExtension = '';
+    if (url.startsWith('magnet:?')) {
+      // Handle torrent upload
+      const client = new WebTorrent();
+      client.on('error', (err) => {
+        console.error(err);
+        return res.json({ success: false, message: err.message });
+      });
 
-    if (url.includes("youtube.com") || url.includes("youtu.be")) {
-      // If the URL is a YouTube video
-      const videoId = ytdl.getURLVideoID(url);
-      const info = await ytdl.getInfo(videoId);
-      response = ytdl(url, { quality: 'highestaudio' });
-      total_length = info.videoDetails.lengthSeconds * 1000; // Convert seconds to milliseconds
-      fileExtension = '.mp4';
+      client.add(url, async (torrent) => {
+        const file = torrent.files[0]; // Assuming we are interested in the first file in the torrent
+        const response = await drive.files.create({
+          requestBody: {
+            name: filename ? `${filename}.${ext}` : file.name,
+            mimeType: file.type,
+          },
+          media: {
+            mimeType: file.type,
+            body: file.createReadStream(),
+          },
+        });
 
-      response.on("data", async (chunk) => {
+        console.log('File uploaded successfully. File ID:', response.data.id);
+        client.destroy(); // Clean up
+        return res.json({ success: true, url, fileId });
+      });
+    } else {
+      // Handle direct link upload
+      const response = await axios.get(url, {
+        responseType: "stream",
+      });
+      const filenameSplitted = url.split("/");
+      const ext = filenameSplitted[filenameSplitted.length - 1].split('.').pop();
+      const total_length = parseInt(response.headers["content-length"]);
+
+      response.data.on("data", async (chunk) => {
         try {
           length += chunk.length;
           let percentCompleted = Math.floor((length / total_length) * 100);
-
-          console.log("completed: ", percentCompleted);
 
           fileMeta[fileId].progress = percentCompleted;
           if (percentCompleted === 100) {
@@ -48,45 +65,27 @@ async function uploadToGDrive(req, res) {
             }, 30 * 60 * 1000);
           }
         } catch (err) {
+          console.log(`error while downloading of file: ${url}`)
           console.log(err);
         }
       });
-    } else if (url.startsWith("magnet:")) {
-      // If the URL is a magnet link
-      const client = new WebTorrent();
-      
-      // Start downloading the torrent
-      const torrent = client.add(url);
-      
-      torrent.on('download', () => {
-        total_length = torrent.length;
+
+      const uploadResponse = await drive.files.create({
+        requestBody: {
+          name: filename ? `${filename}.${ext}` : filenameSplitted[filenameSplitted.length - 1],
+          mimeType: response.headers["content-type"],
+        },
+        media: {
+          mimeType: response.headers["content-type"],
+          body: response.data,
+        },
       });
 
-      response = torrent;
-
-      fileExtension = '.torrent';
-    } else {
-      // If the URL is a direct link to a file
-      const urlPath = new URL(url).pathname;
-      fileExtension = path.extname(urlPath);
-      response = await axios.get(url, { responseType: "stream" });
-      total_length = parseInt(response.headers["content-length"]);
+      console.log('File uploaded successfully. File ID:', uploadResponse.data.id);
+      return res.json({ success: true, url, fileId });
     }
-
-    drive.files.create({
-      requestBody: {
-        name: filename ? `${filename}${fileExtension}` : `file${fileExtension}`, // Set filename based on provided filename or extract from URL
-        mimeType: fileExtension === '.torrent' ? "application/x-bittorrent" : (fileExtension === '.mp4' ? "video/mp4" : response.headers["content-type"]),
-      },
-      media: {
-        mimeType: fileExtension === '.torrent' ? "application/x-bittorrent" : (fileExtension === '.mp4' ? "video/mp4" : response.headers["content-type"]),
-        body: response,
-      },
-    });
-
-    return res.json({ success: true, url, fileId });
   } catch (err) {
-    console.log(err);
+    console.log("uploadToGDrive: error ", err);
     return res.json({ success: false, message: err.message });
   }
 }
