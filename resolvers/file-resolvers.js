@@ -2,7 +2,7 @@ const { default: axios } = require("axios");
 const { google } = require("googleapis");
 const { oauthClient } = require("../gdrive-api/config");
 const { getRandomId } = require("../utils");
-const WebTorrent = require('webtorrent');
+const { WebTorrent } = require("webtorrent");
 
 async function uploadToGDrive(req, res) {
   const { tokens, url, filename } = req.body;
