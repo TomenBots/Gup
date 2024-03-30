@@ -1,6 +1,4 @@
-import WebTorrent from 'webtorrent'
-
-
+const { WebTorrent} = require('webtorrent');
 const { default: axios } = require("axios");
 const { google } = require("googleapis");
 const { oauthClient } = require("../gdrive-api/config");
